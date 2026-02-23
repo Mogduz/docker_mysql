@@ -11,7 +11,7 @@ services:
       db_name: appdb
       db_user: appuser
       db_password: apppass123
-      dump_file: ${dump_file:-}
+      dump_file: ${dump_file_name:-}
     ports:
       - "3306:3306"
     volumes:
