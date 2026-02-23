@@ -23,6 +23,8 @@ Wenn diese gesetzt sind, erstellt der EntryPoint eine leere Datenbank, den User 
 Optional kannst du `dump_file_name` setzen. Dann wird genau dieser Dump beim Container-Start automatisch
 in `db_name` importiert (als `db_user`). Ist `dump_file_name` leer, findet kein Auto-Import statt.
 Es ist nur ein Dateiname erlaubt, der aus `/mnt/dump` gelesen wird.
+Nach erfolgreichem Auto-Import gibt der EntryPoint eine Zusammenfassung mit der Tabellenanzahl
+(`before`, `after`, `new`) aus.
 
 ## Dump-Import
 
