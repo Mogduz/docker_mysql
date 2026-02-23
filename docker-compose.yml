@@ -6,11 +6,11 @@ services:
     container_name: mysql8-ubuntu24
     restart: unless-stopped
     environment:
-      root_user: root
-      root_password: rootpass123
-      db_name: appdb
-      db_user: appuser
-      db_password: apppass123
+      root_user: ${db_root_user:-root}
+      root_password: ${db_root_password:-rootpass123}
+      db_name: ${database_name:-demo}
+      db_user: ${database_user:-dbuser}
+      db_user_password: ${database_user_password:-dbpass123}
       dump_file: ${dump_file_name:-}
     ports:
       - "3306:3306"
