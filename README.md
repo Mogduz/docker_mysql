@@ -15,7 +15,7 @@ Die App-Datenbank wird über folgende Variablen erstellt:
 
 - `db_name`
 - `db_user`
-- `db_password`
+- `db_user_password`
 
 Wenn diese gesetzt sind, erstellt der EntryPoint eine leere Datenbank, den User und führt
 `GRANT ALL PRIVILEGES` auf `db_name` für `db_user` aus (über den Root-Account).
@@ -41,7 +41,7 @@ Beispiele:
 ./scripts/import-dump.sh backup.sql.gz
 ```
 
-Der Importer verwendet immer `db_user`/`db_password` und schreibt immer in `db_name`.
+Der Importer verwendet immer `db_user`/`db_user_password` und schreibt immer in `db_name`.
 Vor und nach dem Import wird ein SHA256-Hash geprüft. Bei `.gz` wird zusätzlich `gzip -t` ausgeführt.
 Wenn sich die Datei während des Imports ändert, wird der Import mit Fehler beendet.
 
