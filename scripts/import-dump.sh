@@ -2,7 +2,12 @@
 set -euo pipefail
 
 if [[ -z "${1:-}" ]]; then
-  echo "Usage: ./import-dump.sh <dump-file|absolute-path>"
+  echo "Usage: ./import-dump.sh <dump-file-name>"
+  exit 1
+fi
+
+if [[ "${1}" == *"/"* || "${1}" == *"\\"* ]]; then
+  echo "Only dump file names are allowed (no path)."
   exit 1
 fi
 
