@@ -30,14 +30,14 @@ Der Container erwartet Dump-Dateien in `/mnt/dump` (Host-Mount, read-only).
 Import aufrufen:
 
 ```bash
-./import-dump.sh <dump-file.sql|dump-file.sql.gz>
+./scripts/import-dump.sh <dump-file.sql|dump-file.sql.gz>
 ```
 
 Beispiele:
 
 ```bash
-./import-dump.sh test.sql
-./import-dump.sh backup.sql.gz
+./scripts/import-dump.sh test.sql
+./scripts/import-dump.sh backup.sql.gz
 ```
 
 Der Importer verwendet immer `db_user`/`db_password` und schreibt immer in `db_name`.
@@ -47,7 +47,7 @@ Wenn sich die Datei während des Imports ändert, wird der Import mit Fehler bee
 WSL-Alias (in `~/.bashrc`):
 
 ```bash
-alias dbimport='cd /mnt/c/Users/Gerald/Documents/GitHub/docker_mysql && ./import-dump.sh'
+alias dbimport='cd /mnt/c/Users/Gerald/Documents/GitHub/docker_mysql && ./scripts/import-dump.sh'
 ```
 
 Danach:
