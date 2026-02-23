@@ -15,8 +15,8 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
-      - /mnt/dump:/mnt/dump:ro
+      - ./mysql_data:/var/lib/mysql
+      - ./dump:/mnt/dump:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$root_user -p$$root_password || exit 1"]
       interval: 10s
