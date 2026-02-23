@@ -10,12 +10,11 @@ DB_PASSWORD="${db_password:-${DB_PASSWORD:-}}"
 
 usage() {
   cat <<EOF
-Usage: mysql-import-dump.sh <dump-file|absolute-path>
+Usage: mysql-import-dump.sh <dump-file-name>
 
 Examples:
   mysql-import-dump.sh mydump.sql
   mysql-import-dump.sh backup.sql.gz
-  mysql-import-dump.sh /mnt/dump/mydump.sql
 EOF
 }
 
@@ -36,12 +35,13 @@ if [[ -n "${2:-}" ]]; then
   echo "Database argument is ignored. Using db_name from environment."
 fi
 
-dump_input="$1"
-if [[ "${dump_input}" = /* ]]; then
-  dump_file="${dump_input}"
-else
-  dump_file="${DUMP_DIR}/${dump_input}"
+dump_name="$1"
+if [[ "${dump_name}" == *"/"* || "${dump_name}" == *"\\"* ]]; then
+  echo "Only dump file names are allowed (no path). Expected file in ${DUMP_DIR}."
+  exit 1
 fi
+
+dump_file="${DUMP_DIR}/${dump_name}"
 
 if [[ ! -f "${dump_file}" ]]; then
   echo "Dump file not found: ${dump_file}"
