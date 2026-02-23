@@ -33,11 +33,12 @@ if [[ -n "${DUMP_FILE}" ]]; then
     exit 1
   fi
 
-  if [[ "${DUMP_FILE}" = /* ]]; then
-    DUMP_FILE_PATH="${DUMP_FILE}"
-  else
-    DUMP_FILE_PATH="${DUMP_DIR}/${DUMP_FILE}"
+  if [[ "${DUMP_FILE}" == *"/"* || "${DUMP_FILE}" == *"\\"* ]]; then
+    echo "dump_file must be a file name only (no path). File is read from ${DUMP_DIR}."
+    exit 1
   fi
+
+  DUMP_FILE_PATH="${DUMP_DIR}/${DUMP_FILE}"
 
   if [[ ! -f "${DUMP_FILE_PATH}" ]]; then
     echo "Configured dump_file not found: ${DUMP_FILE_PATH}"
