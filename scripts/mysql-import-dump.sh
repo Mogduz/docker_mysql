@@ -6,7 +6,7 @@ MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
 MYSQL_PORT="${MYSQL_PORT:-3306}"
 DB_NAME="${db_name:-${DB_NAME:-}}"
 DB_USER="${db_user:-${DB_USER:-}}"
-DB_PASSWORD="${db_password:-${DB_PASSWORD:-}}"
+DB_USER_PASSWORD="${db_user_password:-${DB_USER_PASSWORD:-}}"
 
 usage() {
   cat <<EOF
@@ -63,8 +63,8 @@ if [[ -z "${DB_USER}" ]]; then
   exit 1
 fi
 
-if [[ -z "${DB_PASSWORD}" ]]; then
-  echo "db_password must be set."
+if [[ -z "${DB_USER_PASSWORD}" ]]; then
+  echo "db_user_password must be set."
   exit 1
 fi
 
@@ -73,7 +73,7 @@ mysql_base=(
   -h"${MYSQL_HOST}"
   -P"${MYSQL_PORT}"
   -u"${DB_USER}"
-  -p"${DB_PASSWORD}"
+  -p"${DB_USER_PASSWORD}"
 )
 
 echo "Using database from db_name: ${DB_NAME}"
