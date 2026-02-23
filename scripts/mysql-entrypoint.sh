@@ -7,7 +7,7 @@ ROOT_USER="${root_user:-${ROOT_USER:-root}}"
 ROOT_PASSWORD="${root_password:-${ROOT_PASSWORD:-${MYSQL_ROOT_PASSWORD:-}}}"
 DB_NAME="${db_name:-${DB_NAME:-${MYSQL_DATABASE:-}}}"
 DB_USER="${db_user:-${DB_USER:-${MYSQL_USER:-}}}"
-DB_PASSWORD="${db_password:-${DB_PASSWORD:-${MYSQL_PASSWORD:-}}}"
+DB_USER_PASSWORD="${db_user_password:-${DB_USER_PASSWORD:-}}"
 DUMP_DIR="${MYSQL_DUMP_DIR:-/mnt/dump}"
 DUMP_FILE="${dump_file:-${DUMP_FILE:-}}"
 DUMP_FILE_PATH=""
@@ -20,16 +20,16 @@ fi
 db_cfg_count=0
 [[ -n "${DB_NAME}" ]] && ((db_cfg_count+=1))
 [[ -n "${DB_USER}" ]] && ((db_cfg_count+=1))
-[[ -n "${DB_PASSWORD}" ]] && ((db_cfg_count+=1))
+[[ -n "${DB_USER_PASSWORD}" ]] && ((db_cfg_count+=1))
 
 if (( db_cfg_count > 0 && db_cfg_count < 3 )); then
-  echo "db_name, db_user and db_password must be set together."
+  echo "db_name, db_user and db_user_password must be set together."
   exit 1
 fi
 
 if [[ -n "${DUMP_FILE}" ]]; then
   if (( db_cfg_count != 3 )); then
-    echo "dump_file requires db_name, db_user and db_password."
+    echo "dump_file requires db_name, db_user and db_user_password."
     exit 1
   fi
 
@@ -81,10 +81,10 @@ import_dump_if_configured() {
   echo "Auto-import enabled. Importing ${DUMP_FILE_PATH} into ${DB_NAME} as ${DB_USER}..."
   if [[ "${DUMP_FILE_PATH}" == *.gz ]]; then
     gzip -dc "${DUMP_FILE_PATH}" | mysql --protocol=socket --socket="${SOCKET}" \
-      -u"${DB_USER}" -p"${DB_PASSWORD}" "${DB_NAME}"
+      -u"${DB_USER}" -p"${DB_USER_PASSWORD}" "${DB_NAME}"
   else
     mysql --protocol=socket --socket="${SOCKET}" \
-      -u"${DB_USER}" -p"${DB_PASSWORD}" "${DB_NAME}" < "${DUMP_FILE_PATH}"
+      -u"${DB_USER}" -p"${DB_USER_PASSWORD}" "${DB_NAME}" < "${DUMP_FILE_PATH}"
   fi
 
   dump_hash_after="$(sha256sum "${DUMP_FILE_PATH}" | awk '{print $1}')"
@@ -126,14 +126,14 @@ EOSQL
   if (( db_cfg_count == 3 )); then
     db_name_sql="${DB_NAME//\`/\`\`}"
     db_user_sql="${DB_USER//\'/\'\'}"
-    db_password_sql="${DB_PASSWORD//\'/\'\'}"
+    db_user_password_sql="${DB_USER_PASSWORD//\'/\'\'}"
 
     mysql --protocol=socket --socket="${SOCKET}" -uroot -p"${ROOT_PASSWORD}" <<-EOSQL
       CREATE DATABASE IF NOT EXISTS \`${db_name_sql}\`;
-      CREATE USER IF NOT EXISTS '${db_user_sql}'@'%' IDENTIFIED BY '${db_password_sql}';
-      CREATE USER IF NOT EXISTS '${db_user_sql}'@'localhost' IDENTIFIED BY '${db_password_sql}';
-      ALTER USER '${db_user_sql}'@'%' IDENTIFIED BY '${db_password_sql}';
-      ALTER USER '${db_user_sql}'@'localhost' IDENTIFIED BY '${db_password_sql}';
+      CREATE USER IF NOT EXISTS '${db_user_sql}'@'%' IDENTIFIED BY '${db_user_password_sql}';
+      CREATE USER IF NOT EXISTS '${db_user_sql}'@'localhost' IDENTIFIED BY '${db_user_password_sql}';
+      ALTER USER '${db_user_sql}'@'%' IDENTIFIED BY '${db_user_password_sql}';
+      ALTER USER '${db_user_sql}'@'localhost' IDENTIFIED BY '${db_user_password_sql}';
       GRANT ALL PRIVILEGES ON \`${db_name_sql}\`.* TO '${db_user_sql}'@'%';
       GRANT ALL PRIVILEGES ON \`${db_name_sql}\`.* TO '${db_user_sql}'@'localhost';
       FLUSH PRIVILEGES;
