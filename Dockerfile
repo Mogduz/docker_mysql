@@ -3,7 +3,7 @@ FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive \
     db_name= \
     db_user= \
-    db_password=
+    db_user_password=
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
