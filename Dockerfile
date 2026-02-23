@@ -12,8 +12,8 @@ RUN apt-get update \
     && rm -rf /var/lib/mysql/* \
     && rm -rf /var/lib/apt/lists/*
 
-COPY mysql-entrypoint.sh /usr/local/bin/mysql-entrypoint.sh
-COPY mysql-import-dump.sh /usr/local/bin/mysql-import-dump.sh
+COPY scripts/mysql-entrypoint.sh /usr/local/bin/mysql-entrypoint.sh
+COPY scripts/mysql-import-dump.sh /usr/local/bin/mysql-import-dump.sh
 
 RUN chmod +x /usr/local/bin/mysql-entrypoint.sh /usr/local/bin/mysql-import-dump.sh \
     && mkdir -p /var/run/mysqld /var/lib/mysql \
