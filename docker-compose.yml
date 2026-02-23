@@ -1,0 +1,28 @@
+services:
+  mysql:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mysql8-ubuntu24
+    restart: unless-stopped
+    environment:
+      root_user: root
+      root_password: rootpass123
+      db_name: appdb
+      db_user: appuser
+      db_password: apppass123
+      dump_file: ${dump_file:-}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - /mnt/dump:/mnt/dump:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$root_user -p$$root_password || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  mysql_data:
