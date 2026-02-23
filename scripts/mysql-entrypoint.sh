@@ -12,9 +12,24 @@ DUMP_DIR="${MYSQL_DUMP_DIR:-/mnt/dump}"
 DUMP_FILE="${dump_file:-${DUMP_FILE:-}}"
 DUMP_FILE_PATH=""
 
-if [[ -z "${ROOT_PASSWORD}" ]]; then
-  echo "root_password (or ROOT_PASSWORD / MYSQL_ROOT_PASSWORD) must be set."
+log() {
+  echo "[mysql-entrypoint] $*"
+}
+
+fail() {
+  echo "[mysql-entrypoint] ERROR: $*" >&2
   exit 1
+}
+
+count_tables_in_db() {
+  local db_name_sql
+  db_name_sql="${DB_NAME//\'/\'\'}"
+  mysql --protocol=socket --socket="${SOCKET}" -uroot -p"${ROOT_PASSWORD}" -Nse \
+    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${db_name_sql}';"
+}
+
+if [[ -z "${ROOT_PASSWORD}" ]]; then
+  fail "root_password (or ROOT_PASSWORD / MYSQL_ROOT_PASSWORD) must be set."
 fi
 
 db_cfg_count=0
@@ -23,30 +38,27 @@ db_cfg_count=0
 [[ -n "${DB_USER_PASSWORD}" ]] && ((db_cfg_count+=1))
 
 if (( db_cfg_count > 0 && db_cfg_count < 3 )); then
-  echo "db_name, db_user and db_user_password must be set together."
-  exit 1
+  fail "db_name, db_user and db_user_password must be set together."
 fi
 
 if [[ -n "${DUMP_FILE}" ]]; then
   if (( db_cfg_count != 3 )); then
-    echo "dump_file requires db_name, db_user and db_user_password."
-    exit 1
+    fail "dump_file requires db_name, db_user and db_user_password."
   fi
 
   if [[ "${DUMP_FILE}" == *"/"* || "${DUMP_FILE}" == *"\\"* ]]; then
-    echo "dump_file must be a file name only (no path). File is read from ${DUMP_DIR}."
-    exit 1
+    fail "dump_file must be a file name only (no path). File is read from ${DUMP_DIR}."
   fi
 
   DUMP_FILE_PATH="${DUMP_DIR}/${DUMP_FILE}"
 
   if [[ ! -f "${DUMP_FILE_PATH}" ]]; then
-    echo "Configured dump_file not found: ${DUMP_FILE_PATH}"
-    exit 1
+    fail "Configured dump_file not found: ${DUMP_FILE_PATH}"
   fi
 fi
 
 start_temp_mysql() {
+  log "Starting temporary MySQL server on socket ${SOCKET}..."
   mysqld --user=mysql --datadir="${DATADIR}" --skip-networking --socket="${SOCKET}" &
   mysql_pid="$!"
 
@@ -58,27 +70,33 @@ start_temp_mysql() {
   done
 
   if [[ "${i}" == "0" ]]; then
-    echo "MySQL startup failed during initialization."
-    exit 1
+    fail "Temporary MySQL startup failed during initialization."
   fi
+
+  log "Temporary MySQL server is ready."
 }
 
 stop_temp_mysql() {
+  log "Stopping temporary MySQL server..."
   mysqladmin --protocol=socket --socket="${SOCKET}" -uroot -p"${ROOT_PASSWORD}" shutdown
   wait "${mysql_pid}"
+  log "Temporary MySQL server stopped."
 }
 
 import_dump_if_configured() {
   if [[ -z "${DUMP_FILE_PATH}" ]]; then
+    log "No dump_file configured. Skipping auto-import."
     return
   fi
 
+  tables_before="$(count_tables_in_db)"
   dump_hash_before="$(sha256sum "${DUMP_FILE_PATH}" | awk '{print $1}')"
   if [[ "${DUMP_FILE_PATH}" == *.gz ]]; then
+    log "Validating compressed dump integrity with gzip -t..."
     gzip -t "${DUMP_FILE_PATH}"
   fi
 
-  echo "Auto-import enabled. Importing ${DUMP_FILE_PATH} into ${DB_NAME} as ${DB_USER}..."
+  log "Auto-import enabled. Importing ${DUMP_FILE_PATH} into ${DB_NAME} as ${DB_USER}..."
   if [[ "${DUMP_FILE_PATH}" == *.gz ]]; then
     gzip -dc "${DUMP_FILE_PATH}" | mysql --protocol=socket --socket="${SOCKET}" \
       -u"${DB_USER}" -p"${DB_USER_PASSWORD}" "${DB_NAME}"
@@ -89,18 +107,21 @@ import_dump_if_configured() {
 
   dump_hash_after="$(sha256sum "${DUMP_FILE_PATH}" | awk '{print $1}')"
   if [[ "${dump_hash_before}" != "${dump_hash_after}" ]]; then
-    echo "Auto-import integrity check failed: dump file changed during import."
-    exit 1
+    fail "Auto-import integrity check failed: dump file changed during import."
   fi
 
-  echo "Auto-import finished."
+  tables_after="$(count_tables_in_db)"
+  tables_delta=$((tables_after - tables_before))
+  log "Auto-import finished successfully."
+  log "Imported tables summary for ${DB_NAME}: before=${tables_before}, after=${tables_after}, new=${tables_delta}."
 }
 
+log "Entrypoint started. Preparing MySQL runtime directories..."
 mkdir -p /var/run/mysqld "${DATADIR}"
 chown -R mysql:mysql /var/run/mysqld "${DATADIR}"
 
 if [[ ! -d "${DATADIR}/mysql" ]]; then
-  echo "Initializing MySQL data directory..."
+  log "No existing data directory found. Initializing new MySQL data directory..."
   mysqld --initialize-insecure --user=mysql --datadir="${DATADIR}"
 
   start_temp_mysql
@@ -115,6 +136,7 @@ if [[ ! -d "${DATADIR}/mysql" ]]; then
 EOSQL
 
   if [[ "${ROOT_USER}" != "root" ]]; then
+    log "Creating configured admin user '${ROOT_USER}'..."
     mysql --protocol=socket --socket="${SOCKET}" -uroot -p"${ROOT_PASSWORD}" <<-EOSQL
       CREATE USER IF NOT EXISTS '${root_user_sql}'@'localhost' IDENTIFIED WITH mysql_native_password BY '${root_password_sql}';
       CREATE USER IF NOT EXISTS '${root_user_sql}'@'%' IDENTIFIED WITH mysql_native_password BY '${root_password_sql}';
@@ -124,6 +146,7 @@ EOSQL
   fi
 
   if (( db_cfg_count == 3 )); then
+    log "Creating application database/user and granting privileges..."
     db_name_sql="${DB_NAME//\`/\`\`}"
     db_user_sql="${DB_USER//\'/\'\'}"
     db_user_password_sql="${DB_USER_PASSWORD//\'/\'\'}"
@@ -138,14 +161,20 @@ EOSQL
       GRANT ALL PRIVILEGES ON \`${db_name_sql}\`.* TO '${db_user_sql}'@'localhost';
       FLUSH PRIVILEGES;
 EOSQL
+  else
+    log "No complete db_* configuration provided. Skipping application DB/user creation."
   fi
 
   import_dump_if_configured
   stop_temp_mysql
 elif [[ -n "${DUMP_FILE_PATH}" ]]; then
+  log "Existing data directory found. Running configured auto-import..."
   start_temp_mysql
   import_dump_if_configured
   stop_temp_mysql
+else
+  log "Existing data directory found. No auto-import requested."
 fi
 
+log "Starting MySQL server for normal operation..."
 exec mysqld --user=mysql --datadir="${DATADIR}" --bind-address=0.0.0.0
