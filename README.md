@@ -20,8 +20,9 @@ Die App-Datenbank wird über folgende Variablen erstellt:
 Wenn diese gesetzt sind, erstellt der EntryPoint eine leere Datenbank, den User und führt
 `GRANT ALL PRIVILEGES` auf `db_name` für `db_user` aus (über den Root-Account).
 
-Optional kannst du `dump_file` setzen. Dann wird genau dieser Dump beim Container-Start automatisch
-in `db_name` importiert (als `db_user`). Ist `dump_file` leer, findet kein Auto-Import statt.
+Optional kannst du `dump_file_name` setzen. Dann wird genau dieser Dump beim Container-Start automatisch
+in `db_name` importiert (als `db_user`). Ist `dump_file_name` leer, findet kein Auto-Import statt.
+Es ist nur ein Dateiname erlaubt, der aus `/mnt/dump` gelesen wird.
 
 ## Dump-Import
 
@@ -30,7 +31,7 @@ Der Container erwartet Dump-Dateien in `/mnt/dump` (Host-Mount, read-only).
 Import aufrufen:
 
 ```bash
-./scripts/import-dump.sh <dump-file.sql|dump-file.sql.gz>
+./scripts/import-dump.sh <dump-file-name.sql|dump-file-name.sql.gz>
 ```
 
 Beispiele:
